@@ -53,11 +53,10 @@ def _roi_pool_setup_context(ctx, inputs, output):
 
 
 def _roi_pool_backward(ctx, grad_output, _grad_argmax):
-    # The CUDA backward accumulates with atomicAdd. Stable kernels can't call
-    # alertNotDeterministic, so the alert lives here in Python. The CPU
-    # backward is deterministic and must not alert. The MPS backward still
-    # alerts from C++ until it is ported.
-    if grad_output.device.type == "cuda":
+    # The CUDA and MPS backwards accumulate with atomicAdd. Stable kernels
+    # can't call alertNotDeterministic, so the alert lives here in Python.
+    # The CPU backward is deterministic and must not alert.
+    if grad_output.device.type in ("cuda", "mps"):
         torch._prims_common.alert_not_deterministic("roi_pool_backward_kernel")
     rois, argmax = ctx.saved_tensors
     batch_size, channels, height, width = ctx.input_shape
